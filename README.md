@@ -4,6 +4,8 @@ Run the [Codex CLI](https://github.com/openai/codex) with any [OpenRouter](https
 
 `codex-openrouter` installs its own pinned copy of Codex (0.155.1) and starts it with OpenRouter as the model provider. The default model is [DeepSeek V4.1 Flash](https://openrouter.ai/deepseek/deepseek-v4.1-flash) with `high` reasoning. Your normal `codex` install and its configuration are not changed.
 
+**Everything runs through OpenRouter.** If you select a model in the Codex model picker, Codex does not start its normal login flow, and OpenRouter bills the request to your key. To use your OpenAI account and the regular ChatGPT models, run the normal `codex` command.
+
 This is an unofficial tool. It is not affiliated with OpenAI or OpenRouter.
 
 **You need:** an Apple Silicon Mac with macOS 15 or later, and an [OpenRouter API key](https://openrouter.ai/settings/keys).
