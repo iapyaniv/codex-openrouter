@@ -101,7 +101,7 @@ func inspectPublic(prefix, public string, sourceInfo os.FileInfo, sourceBytes []
 		if err != nil || identity.ID() != child.Name() || identity.Target != runtime.GOOS+"-"+runtime.GOARCH {
 			continue
 		}
-		helper, _, err := readChecked(filepath.Join(root, "codex-openrouter"), maxLauncherBytes)
+		helper, _, err := readChecked(filepath.Join(root, distribution.CommandName()), maxLauncherBytes)
 		if err != nil || int64(len(helper)) != record.HelperBytes || sum(helper) != record.HelperSHA256 || sum(data) != record.HelperSHA256 {
 			continue
 		}
@@ -139,7 +139,7 @@ func preparePublic(directory string, data []byte) (string, error) {
 		return path, err
 	}
 	copy, info, err := readChecked(path, maxLauncherBytes)
-	if err != nil || sum(copy) != sum(data) || info.Mode().Perm()&0o100 == 0 {
+	if err != nil || sum(copy) != sum(data) || (runtime.GOOS != "windows" && info.Mode().Perm()&0o100 == 0) {
 		return path, errors.Join(errors.New("prepared public executable could not be verified"), err)
 	}
 	return path, nil

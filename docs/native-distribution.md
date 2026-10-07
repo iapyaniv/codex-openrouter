@@ -182,49 +182,36 @@ the pinned Go 1.27 toolchain itself requires macOS 13 or later per the
 Go launcher cannot claim macOS 11 compatibility. The most restrictive
 component is the bundled zsh at 15.0, which sets the full-package floor.
 
-Runtime evidence so far is limited to the development host, macOS 26.5.1
-arm64 — the binaries were executed there and nowhere older. The core
-`bin/codex` Mach-O minimum of 11.0 is what the binary declares, not a
-verified support floor for the full package. Linux (musl static builds) and
-Windows minimums are **unverified**: no host was available to run or inspect
-them. Do not infer them from Go's supported-platform list.
+The core `bin/codex` Mach-O minimum of 11.0 is what the binary declares, not
+a verified support floor for the full package.
 
-## Other targets (unverified, not installable)
+## Other targets
 
-Only `darwin-arm64` is fully inventoried and installable in the manifest.
-The targets below have URL/byte-length/SHA-256 pinned from official release
-metadata (release asset digests and `codex-package_SHA256SUMS`, fetched
-2026-09-22), but they were **not** executed and their per-file inventories
-are **not** pinned. They are recorded here for planning only and are **not
-installable** from the runtime manifest. Do not treat this metadata as a
-runtime or terminal-support claim.
+All six targets use the same `codex-package-<rust-target>.tar.gz` family from
+the pinned release. `scripts/codex_package/layout.py` in the Codex source
+decides the contents per target. Each archive's size and SHA-256 match the
+GitHub release asset digest, and every file in it is pinned in the manifest.
 
-| Target | Rust target | Archive bytes | SHA-256 |
-| --- | --- | --- | --- |
-| darwin/amd64 | `x86_64-apple-darwin` | 133,128,625 | `be752aebb2ac022c5bfed3fa14f46943d11ddb36a950b553b058794aba22496a` |
-| linux/amd64 | `x86_64-unknown-linux-musl` | 138,838,055 | `a65b895c6ac1a73629bbe4b864640c86133e94a43b4d67b3103044e1a306d5a2` |
-| linux/arm64 | `aarch64-unknown-linux-musl` | 130,233,502 | `71857dbc9bea3613410e8a69cfb46b07c0402d6d20fec18843dbaffd757634bd` |
-| windows/amd64 | `x86_64-pc-windows-msvc` | 139,547,261 | `f45c273b7835c192aaa9cef5b93aa9528966ac7301444632de80a565a9bf14e8` |
-| windows/arm64 | `aarch64-pc-windows-msvc` | 129,273,387 | `f53deb24650d288fddfd1724ef952f6ad9cb6119c75ecc12a6223b98fd97719a` |
+| Target | Rust target | Files | Extracted bytes | Differences from darwin/arm64 |
+| --- | --- | --- | --- | --- |
+| darwin/arm64 | `aarch64-apple-darwin` | 42 | 317,010,263 | — |
+| darwin/amd64 | `x86_64-apple-darwin` | 42 | 337,806,099 | Same paths and execute bits |
+| linux/amd64 | `x86_64-unknown-linux-musl` | 44 | 370,481,745 | `codex-resources/bwrap`; voice libraries are `.so` files |
+| linux/arm64 | `aarch64-unknown-linux-musl` | 44 | 327,519,799 | Same as linux/amd64 |
+| windows/amd64 | `x86_64-pc-windows-msvc` | 6 | 407,517,591 | `.exe` names; no zsh or voice; adds `codex-command-runner.exe` and `codex-windows-sandbox-setup.exe` |
+| windows/arm64 | `aarch64-pc-windows-msvc` | 6 | 351,330,200 | Same as windows/amd64 |
 
 Notes:
 
-- darwin/amd64 was downloaded and re-hashed (matches) and its extracted
-  layout confirmed to contain the same 42 files and `codex-package.json`
-  (layoutVersion 1); its core binaries declare a macOS 10.12 Mach-O minimum
-  (`LC_VERSION_MIN_MACOSX`), voice host 14.0, zsh 15.0. It was not executed
-  (no x86_64 macOS host or Rosetta available) and its per-file inventory is
-  not pinned.
-- linux targets are musl static builds and are expected to ship
-  `codex-resources/bwrap`; layout unconfirmed. Upstream publishes `.sigstore`
-  bundles for these two archives only.
-- windows layout and minimums are unconfirmed.
-
-## Open work for other platforms
-
-- **Windows:** `os.Rename` cannot replace a running executable, and the
-  directory checks are not a full ACL audit. Both need tests on real
-  hardware before Windows installs are enabled.
-- **Intel Mac and Linux:** pin the per-file inventory (Linux also ships
-  `codex-resources/bwrap`), add the target to `codex-artifacts.json`, and run
-  the native install test on that platform.
+- Linux `bwrap` is bubblewrap 0.11.2, built from
+  `codex-rs/vendor/bubblewrap` in the pinned Codex source. Its LGPL notice is
+  retained with the other notices.
+- Intel Macs use the same macOS 15.0 floor as Apple Silicon (the bundled zsh
+  declares it). Linux packages are static musl builds, and Windows has no
+  manifest minimum, so the installer does not check an OS version there.
+- Windows cannot replace a running executable. If a Codex session uses the
+  public command during an update, the installer reports an error; close the
+  session and run the installer again.
+- CI runs the native install test on all six targets. On Windows, the test
+  installs, reinstalls and starts Codex, but skips the mock-provider session,
+  because that session runs a POSIX shell command.

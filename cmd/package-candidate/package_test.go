@@ -1,10 +1,13 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"debug/buildinfo"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,11 +15,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"codex-openrouter/internal/distribution"
 )
 
 func TestExactCommittedCandidate(t *testing.T) {
-	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" {
-		t.Skip("candidate packaging executes its darwin/arm64 artifact and requires Apple Silicon macOS")
+	host, err := distribution.CurrentTarget()
+	if err != nil || runtime.GOOS == "windows" {
+		t.Skip("candidate packaging is tested on Unix hosts that the manifest publishes")
 	}
 	if testing.Short() {
 		t.Skip("builds the launcher twice")
@@ -71,7 +77,7 @@ func TestExactCommittedCandidate(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	options := packageOptions{version: "0.2.0-local", commit: strings.TrimSpace(string(head)), output: filepath.Join(root, "first")}
+	options := packageOptions{version: "0.2.0-local", commit: strings.TrimSpace(string(head)), output: filepath.Join(root, "first"), targets: []string{host.ID}}
 	if err := packageCandidate(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -80,16 +86,18 @@ func TestExactCommittedCandidate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var metadata candidateMetadata
-		if err := json.Unmarshal(data, &metadata); err != nil {
+		var release releaseMetadata
+		if err := json.Unmarshal(data, &release); err != nil {
 			t.Fatal(err)
 		}
+		metadata := release.Targets[host.ID]
 		binary := filepath.Join(root, "missing-stamp")
 		flags := "-X codex-openrouter/internal/launcher.Version=" + metadata.Identity.Version + " -X codex-openrouter/internal/launcher.MissingBuildID=" + metadata.Identity.BuildID
-		if _, err := tools.command(ctx, fixture, []string{"GOOS=darwin", "GOARCH=arm64", "GOARM64=v8.0"}, tools.goBinary, "build", "-trimpath", "-buildvcs=false", "-ldflags", flags, "-o", binary, "./cmd/codex-openrouter"); err != nil {
+		if _, err := tools.command(ctx, fixture, targetEnvironment(host), tools.goBinary, "build", "-trimpath", "-buildvcs=false", "-ldflags", flags, "-o", binary, "./cmd/codex-openrouter"); err != nil {
 			t.Fatal(err)
 		}
-		valid, err := buildinfo.ReadFile(filepath.Join(options.output, "codex-openrouter"))
+		archive := filepath.Join(options.output, "codex-openrouter_"+options.version+"_"+host.OS+"_"+host.Arch+".tar.gz")
+		valid, err := buildinfo.ReadFile(extractExecutable(t, archive, filepath.Join(root, "valid")))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -100,7 +108,7 @@ func TestExactCommittedCandidate(t *testing.T) {
 		if !reflect.DeepEqual(valid, unstamped) {
 			t.Fatal("missing-stamp binary did not retain the valid candidate's Go build metadata")
 		}
-		if err := tools.verifyBinary(ctx, binary, metadata.Identity); err == nil {
+		if err := tools.verifyBinary(ctx, binary, metadata.Identity, host); err == nil {
 			t.Fatal("verification accepted a missing linker stamp despite valid Go build metadata")
 		}
 	})
@@ -208,6 +216,36 @@ func TestExactCommittedCandidate(t *testing.T) {
 		current, err := os.ReadFile(filepath.Join(root, "first", name))
 		if err != nil || !bytes.Equal(original, current) {
 			t.Fatalf("refused packaging request changed existing artifact %s: %v", name, err)
+		}
+	}
+}
+
+func extractExecutable(t *testing.T, archive, destination string) string {
+	t.Helper()
+	file, err := os.Open(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	stream, err := gzip.NewReader(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := tar.NewReader(stream)
+	for {
+		header, err := reader.Next()
+		if err != nil {
+			t.Fatalf("archive has no launcher: %v", err)
+		}
+		if header.Name == "codex-openrouter" {
+			data, err := io.ReadAll(reader)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(destination, data, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			return destination
 		}
 	}
 }

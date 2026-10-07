@@ -28,16 +28,20 @@ type ReleasePaths struct {
 	Licenses      string
 }
 
+// CommandName is the launcher's file name on this platform.
+func CommandName() string {
+	if runtime.GOOS == "windows" {
+		return "codex-openrouter.exe"
+	}
+	return "codex-openrouter"
+}
+
 func ReleaseLayout(prefix string, identity ReleaseIdentity, target Target) ReleasePaths {
 	root := filepath.Join(prefix, "releases", identity.ID())
-	helperName := "codex-openrouter"
-	if runtime.GOOS == "windows" {
-		helperName = "codex-openrouter.exe"
-	}
 	tree := filepath.Join(root, "codex")
 	return ReleasePaths{
 		Root:          root,
-		Helper:        filepath.Join(root, helperName),
+		Helper:        filepath.Join(root, CommandName()),
 		CodexTree:     tree,
 		CodexBinary:   filepath.Join(tree, filepath.FromSlash(target.Entrypoint)),
 		AuditManifest: filepath.Join(root, "codex-artifacts.json"),

@@ -55,7 +55,7 @@ func Run(ctx context.Context, prefix string, identity distribution.ReleaseIdenti
 
 func run(ctx context.Context, prefix string, identity distribution.ReleaseIdentity, target distribution.Target, source string, progress io.Writer, ops operations) (result Result, err error) {
 	publicDir := filepath.Join(prefix, "bin")
-	public := filepath.Join(publicDir, "codex-openrouter")
+	public := filepath.Join(publicDir, distribution.CommandName())
 	result = Result{PublicPath: public, Version: identity.Version, CodexVersion: distribution.CodexVersion()}
 	if !identity.IsRelease() {
 		return result, errors.New("unstamped launcher cannot install")

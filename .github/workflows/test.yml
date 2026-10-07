@@ -39,7 +39,7 @@ jobs:
           go test -count=1 ./...
       - name: Race checks
         if: runner.os == 'Linux' || runner.os == 'macOS'
-        run: go test -race -count=1 ./...
+        run: go test -race -short -count=1 ./...
   cross-build:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -64,8 +64,15 @@ jobs:
             go test -exec=/usr/bin/true -run='^$' ./...
           done
   native-install:
-    runs-on: macos-15
-    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm, windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,6 +85,4 @@ jobs:
       - name: Install over HTTPS and exercise the public command
         env:
           CODEX_OPENROUTER_TEST_INSTALL: "1"
-        run: |
-          test "$(uname -m)" = arm64
-          go test -count=1 -v ./internal/integration
+        run: go test -count=1 -v ./internal/integration

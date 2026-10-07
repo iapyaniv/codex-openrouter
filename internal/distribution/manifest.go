@@ -140,6 +140,11 @@ func UnsetEnvironment() []string {
 	return append([]string(nil), cachedManifest.Environment.Unset...)
 }
 
+// Targets returns every platform the embedded manifest publishes.
+func Targets() []Target {
+	return append([]Target(nil), cachedManifest.Targets...)
+}
+
 // CurrentTarget returns the validated manifest target for this platform,
 // or an error when the manifest publishes none (for example Windows).
 func CurrentTarget() (Target, error) {

@@ -71,12 +71,12 @@ func TestNativeLoopback(t *testing.T) {
 	}
 	var identity distribution.ReleaseIdentity
 	var suppliedBytes []byte
-	candidate := filepath.Join(root, "codex-openrouter")
-	probe := filepath.Join(root, "envprobe")
-	buildEnv := []string{
-		"HOME=" + root, "PATH=/usr/bin:/bin", "GOTOOLCHAIN=local", "GOPROXY=off", "GOENV=off", "CGO_ENABLED=0",
-		"GOCACHE=" + filepath.Join(root, "go-cache"), "GOMODCACHE=" + filepath.Join(root, "go-mod-cache"),
-	}
+	candidate := filepath.Join(root, distribution.CommandName())
+	probe := filepath.Join(root, executable("envprobe"))
+	buildEnv := append(baseEnvironment(root, root),
+		"GOTOOLCHAIN=local", "GOPROXY=off", "GOENV=off", "CGO_ENABLED=0", "GOPATH="+filepath.Join(root, "go-path"),
+		"GOCACHE="+filepath.Join(root, "go-cache"), "GOMODCACHE="+filepath.Join(root, "go-mod-cache"),
+	)
 	goBinary := filepath.Join(runtime.GOROOT(), "bin", "go")
 	if suppliedMode {
 		candidate = supplied
@@ -99,11 +99,10 @@ func TestNativeLoopback(t *testing.T) {
 	for _, directory := range []string{home, codexHome} {
 		must(t, os.Mkdir(directory, 0o700))
 	}
-	environ := []string{
-		"HOME=" + home, "ZDOTDIR=" + home, "CODEX_HOME=" + codexHome, "CODEX_OPENROUTER_HOME=" + prefix,
-		"PATH=/usr/bin:/bin", "SHELL=/bin/zsh", "LANG=en_US.UTF-8", "TERM=dumb", "TMPDIR=" + root,
+	environ := append(baseEnvironment(home, root),
+		"CODEX_HOME="+codexHome, "CODEX_OPENROUTER_HOME="+prefix, "LANG=en_US.UTF-8", "TERM=dumb",
 		"SMOKE_EXCLUDED=must-be-excluded", "OUTSIDE_INCLUDE_ONLY=must-be-excluded", "SMOKE_INHERITED=inherited",
-	}
+	)
 	downloaded := candidate
 	if suppliedMode {
 		expected := "codex-openrouter " + identity.Describe() + ", pinned Codex " + distribution.CodexVersion() + "\n"
@@ -112,8 +111,8 @@ func TestNativeLoopback(t *testing.T) {
 		}
 	}
 	if installed {
-		run(t, root, environ, downloaded, "--install")
-		candidate = filepath.Join(prefix, "bin", "codex-openrouter")
+		runWithin(t, installTimeout, root, environ, downloaded, "--install")
+		candidate = filepath.Join(prefix, "bin", distribution.CommandName())
 		if _, err := os.Stat(filepath.Join(prefix, "config.json")); !os.IsNotExist(err) {
 			t.Fatal("fresh installation wrote settings")
 		}
@@ -152,10 +151,13 @@ func TestNativeLoopback(t *testing.T) {
 			configPath := filepath.Join(codexHome, "config.toml")
 			write(t, configPath, config, 0o600)
 			if installed && tc.name == "legacy" {
-				run(t, root, environ, downloaded, "--install")
+				runWithin(t, installTimeout, root, environ, downloaded, "--install")
 				if !bytes.Equal(read(t, settingsPath), settings) || !bytes.Equal(read(t, configPath), config) {
 					t.Fatal("repeat installation changed settings or user TOML")
 				}
+			}
+			if runtime.GOOS == "windows" {
+				t.Skip("the mock session asks Codex to run a POSIX shell command")
 			}
 			mock := newProvider(t, shellQuote(probe), codexHome)
 			keyEnv := append([]string(nil), environ...)
@@ -176,11 +178,13 @@ func TestNativeLoopback(t *testing.T) {
 	}
 	searchFile := filepath.Join(root, "search.txt")
 	write(t, searchFile, []byte("before\nneedle café\nafter\n"), 0o600)
-	if out := run(t, root, environ, filepath.Join(paths.CodexTree, "codex-path", "rg"), "--fixed-strings", "needle café", searchFile); out != "needle café\n" {
+	if out := run(t, root, environ, filepath.Join(paths.CodexTree, "codex-path", executable("rg")), "--fixed-strings", "needle café", searchFile); out != "needle café\n" {
 		t.Fatal("bundled ripgrep did not perform the content search")
 	}
-	if out := run(t, root, environ, filepath.Join(paths.CodexTree, "codex-resources", "zsh", "bin", "zsh"), "-f", "-c", `print -r -- 'bundled-zsh-ok'`); out != "bundled-zsh-ok\n" {
-		t.Fatal("bundled zsh did not execute its command")
+	if inInventory(target, "codex-resources/zsh/bin/zsh") {
+		if out := run(t, root, environ, filepath.Join(paths.CodexTree, "codex-resources", "zsh", "bin", "zsh"), "-f", "-c", `print -r -- 'bundled-zsh-ok'`); out != "bundled-zsh-ok\n" {
+			t.Fatal("bundled zsh did not execute its command")
+		}
 	}
 	t.Logf("candidate=%s\nprefix=%s\nroot=%s\nbuildID=%s", candidate, prefix, root, identity.BuildID)
 }
@@ -216,7 +220,7 @@ func archiveCandidate(t *testing.T, candidate string) (distribution.ReleaseIdent
 	file.Close()
 	must(t, err)
 	sum := sha256.Sum256(data)
-	entry := record.Files["codex-openrouter"]
+	entry := record.Files[distribution.CommandName()]
 	if entry.Bytes != int64(len(data)) || entry.SHA256 != hex.EncodeToString(sum[:]) {
 		t.Fatal("supplied candidate bytes differ from BUILD.json")
 	}
@@ -304,9 +308,18 @@ func provision(t *testing.T, fixture, candidate, prefix string, target distribut
 	return paths
 }
 
+// The installer downloads about 130 MB, so slow links need more than the
+// ordinary command limit.
+const installTimeout = 15 * time.Minute
+
 func run(t *testing.T, directory string, environ []string, binary string, args ...string) string {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	return runWithin(t, 120*time.Second, directory, environ, binary, args...)
+}
+
+func runWithin(t *testing.T, timeout time.Duration, directory string, environ []string, binary string, args ...string) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	command := exec.CommandContext(ctx, binary, args...)
 	command.Dir, command.Env = directory, environ
@@ -317,6 +330,41 @@ func run(t *testing.T, directory string, environ []string, binary string, args .
 		t.Fatalf("%s failed: %v\n%s", filepath.Base(binary), err, stderr.String())
 	}
 	return stdout.String()
+}
+
+func executable(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
+	}
+	return name
+}
+
+func inInventory(target distribution.Target, path string) bool {
+	for _, entry := range target.Inventory {
+		if entry.Path == path {
+			return true
+		}
+	}
+	return false
+}
+
+// baseEnvironment is the minimal environment that native tools need on each
+// platform; tests add their own variables after it.
+func baseEnvironment(home, tmp string) []string {
+	if runtime.GOOS == "windows" {
+		root := os.Getenv("SystemRoot")
+		system := filepath.Join(root, "System32")
+		return []string{
+			"SystemRoot=" + root, "USERPROFILE=" + home, "HOME=" + home, "TEMP=" + tmp, "TMP=" + tmp,
+			"LOCALAPPDATA=" + filepath.Join(home, "AppData", "Local"), "APPDATA=" + filepath.Join(home, "AppData", "Roaming"),
+			"PATH=" + system + ";" + filepath.Join(system, "WindowsPowerShell", "v1.0"),
+		}
+	}
+	shell := "/bin/zsh"
+	if runtime.GOOS == "linux" {
+		shell = "/bin/bash"
+	}
+	return []string{"HOME=" + home, "ZDOTDIR=" + home, "TMPDIR=" + tmp, "PATH=/usr/bin:/bin", "SHELL=" + shell}
 }
 
 func write(t *testing.T, path string, data []byte, mode os.FileMode) {

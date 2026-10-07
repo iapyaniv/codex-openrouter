@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -29,6 +30,17 @@ func (output *probeOutput) Write(data []byte) (int, error) {
 	return output.data.Write(data)
 }
 
+func probeEnvironment(directory string) []string {
+	home, tmp := filepath.Join(directory, "home"), filepath.Join(directory, "tmp")
+	env := []string{"HOME=" + home, "CODEX_HOME=" + filepath.Join(directory, "codex-home"), "TERM=dumb"}
+	if runtime.GOOS == "windows" {
+		// Windows programs need SystemRoot to load system DLLs.
+		root := os.Getenv("SystemRoot")
+		return append(env, "SystemRoot="+root, "PATH="+filepath.Join(root, "System32"), "USERPROFILE="+home, "TEMP="+tmp, "TMP="+tmp)
+	}
+	return append(env, "ZDOTDIR="+home, "TMPDIR="+tmp, "PATH=/usr/bin:/bin")
+}
+
 func probe(ctx context.Context, binary, directory, version string) error {
 	for _, name := range []string{"home", "codex-home", "tmp"} {
 		if err := os.Mkdir(filepath.Join(directory, name), 0o700); err != nil && !errors.Is(err, os.ErrExist) {
@@ -40,7 +52,7 @@ func probe(ctx context.Context, binary, directory, version string) error {
 		output := &probeOutput{remaining: 16 << 10, cancel: cancel}
 		command := exec.CommandContext(deadline, binary, argument)
 		command.Dir = directory
-		command.Env = []string{"HOME=" + filepath.Join(directory, "home"), "CODEX_HOME=" + filepath.Join(directory, "codex-home"), "ZDOTDIR=" + filepath.Join(directory, "home"), "TMPDIR=" + filepath.Join(directory, "tmp"), "PATH=/usr/bin:/bin", "TERM=dumb"}
+		command.Env = probeEnvironment(directory)
 		command.WaitDelay = time.Second
 		command.Stdout, command.Stderr = output, output
 		err := command.Run()
