@@ -1,0 +1,107 @@
+name: Candidate
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Explicit candidate version
+        required: true
+        default: 0.2.0-local
+permissions:
+  contents: read
+env:
+  GOTOOLCHAIN: local
+  GOPROXY: "off"
+  GOENV: "off"
+  GOWORK: "off"
+  GOFLAGS: ""
+  GOEXPERIMENT: ""
+  CGO_ENABLED: "0"
+jobs:
+  checks:
+    uses: ./.github/workflows/test.yml
+  candidate:
+    needs: checks
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          check-latest: false
+          cache: false
+      - name: Bootstrap and package exact committed source
+        env:
+          CANDIDATE_VERSION: ${{ inputs.version }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(uname -m)" = arm64
+          mkdir -m 700 "$RUNNER_TEMP/source-bootstrap"
+          /usr/bin/env -i PATH=/usr/bin:/bin HOME="$RUNNER_TEMP/source-bootstrap/home" TMPDIR="$RUNNER_TEMP/source-bootstrap" \
+            GOTOOLCHAIN=local GOPROXY=off GOENV=off GOWORK=off GOFLAGS= GOEXPERIMENT= CGO_ENABLED=0 \
+            GOCACHE="$RUNNER_TEMP/source-bootstrap/go-cache" GOMODCACHE="$RUNNER_TEMP/source-bootstrap/go-mod-cache" \
+            GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_ATTR_NOSYSTEM=1 GIT_NO_REPLACE_OBJECTS=1 \
+            SOURCE_REPOSITORY="$GITHUB_WORKSPACE" SOURCE_COMMIT="$SOURCE_COMMIT" \
+            GO_BINARY="$(command -v go)" CANDIDATE_OUT="$RUNNER_TEMP/candidate" CANDIDATE_VERSION="$CANDIDATE_VERSION" \
+            /bin/sh -eu -c '
+              umask 077
+              case "$SOURCE_COMMIT" in ""|*[!0-9a-f]*) exit 1;; esac
+              test "${#SOURCE_COMMIT}" -eq 40 || test "${#SOURCE_COMMIT}" -eq 64
+              for path in "$SOURCE_REPOSITORY" "$GO_BINARY" "$CANDIDATE_OUT"; do
+                case "$path" in /*) ;; *) exit 1;; esac
+              done
+              source_root=$(cd "$SOURCE_REPOSITORY" && pwd -P)
+              bootstrap_root=$(cd "$TMPDIR" && pwd -P)
+              candidate_parent=$(cd "$(/usr/bin/dirname "$CANDIDATE_OUT")" && pwd -P)
+              while :; do
+                if test "$candidate_parent" -ef "$source_root" || test "$candidate_parent" -ef "$bootstrap_root"; then
+                  printf "%s\n" "candidate output must be outside original source and bootstrap" >&2
+                  exit 1
+                fi
+                test "$candidate_parent" = / && break
+                candidate_parent=$(/usr/bin/dirname "$candidate_parent")
+              done
+              mkdir -m 700 "$HOME"
+              git() { /usr/bin/git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c core.attributesFile=/dev/null -c core.autocrlf=false "$@"; }
+              git clone --quiet --no-local --no-checkout --template= -- "$SOURCE_REPOSITORY" "$TMPDIR/source"
+              git -C "$TMPDIR/source" checkout --quiet --detach "$SOURCE_COMMIT"
+              test "$(git -C "$TMPDIR/source" rev-parse HEAD)" = "$SOURCE_COMMIT"
+              cd "$TMPDIR/source"
+              "$GO_BINARY" run ./cmd/package-candidate --version "$CANDIDATE_VERSION" \
+                --source-commit "$SOURCE_COMMIT" --out "$CANDIDATE_OUT"
+            '
+      - name: Install and exercise the exact candidate archive
+        working-directory: ${{ runner.temp }}/source-bootstrap/source
+        env:
+          CANDIDATE_VERSION: ${{ inputs.version }}
+          CODEX_OPENROUTER_TEST_CANDIDATE: ${{ runner.temp }}/extracted/codex-openrouter
+        run: |
+          (cd "$RUNNER_TEMP/candidate" && shasum -a 256 -c SHA256SUMS)
+          mkdir -m 700 "$RUNNER_TEMP/extracted"
+          tar -xzf "$RUNNER_TEMP/candidate/codex-openrouter_${CANDIDATE_VERSION}_darwin_arm64.tar.gz" -C "$RUNNER_TEMP/extracted"
+          go test -count=1 -v ./internal/integration
+      - name: Provision separate pinned scanner
+        working-directory: ${{ runner.temp }}/source-bootstrap/source
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+          GOBIN: ${{ runner.temp }}/scanner
+          GOMODCACHE: ${{ runner.temp }}/scanner-modules
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+      - name: Scan Go source and candidate binary
+        working-directory: ${{ runner.temp }}/source-bootstrap/source
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+          GOARM64: v8.0
+        run: |
+          "$RUNNER_TEMP/scanner/govulncheck" ./...
+          "$RUNNER_TEMP/scanner/govulncheck" -mode=binary "$RUNNER_TEMP/candidate/codex-openrouter"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codex-openrouter-candidate
+          path: ${{ runner.temp }}/candidate/
+          if-no-files-found: error
+          retention-days: 7

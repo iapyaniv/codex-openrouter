@@ -1,4 +1,9 @@
 node_modules/
+/dist/
+/codex-openrouter
+/codex-openrouter.exe
+*.test
+*.test.exe
 .env
 .env.*
 config.json

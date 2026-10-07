@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "codexVersion": "0.155.1",
+    "upstreamTag": "rust-v0.155.1",
+    "sourceCommit": "be2951ea34f0d295ed0becf97079f92fa5f6950e",
+    "releaseUrl": "https://github.com/openai/codex/releases/tag/rust-v0.155.1",
+    "publishedAt": "2026-09-18T20:03:04Z"
+  },
+  "layout": {
+    "kind": "codex-package",
+    "layoutVersion": 1,
+    "resourcesDir": "codex-resources",
+    "pathDir": "codex-path"
+  },
+  "environment": {
+    "unset": [
+      "CODEX_MANAGED_BY_NPM",
+      "CODEX_MANAGED_BY_BUN",
+      "CODEX_MANAGED_BY_PNPM",
+      "CODEX_MANAGED_BY_VITE_PLUS",
+      "CODEX_MANAGED_PACKAGE_ROOT"
+    ]
+  },
+  "notices": {
+    "codexLicense": "Apache-2.0",
+    "retainFromPackage": [
+      "codex-resources/voice/NOTICE.md",
+      "codex-resources/voice/sources.json",
+      "codex-resources/voice/licenses/"
+    ],
+    "codexRootNotices": [
+      {
+        "path": "internal/distribution/licenses/codex-LICENSE.txt",
+        "bytes": 10926,
+        "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+        "sourceUrl": "https://raw.githubusercontent.com/openai/codex/be2951ea34f0d295ed0becf97079f92fa5f6950e/LICENSE"
+      },
+      {
+        "path": "internal/distribution/licenses/codex-NOTICE.txt",
+        "bytes": 242,
+        "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915",
+        "sourceUrl": "https://raw.githubusercontent.com/openai/codex/be2951ea34f0d295ed0becf97079f92fa5f6950e/NOTICE"
+      }
+    ],
+    "bundledNotices": [
+      {
+        "path": "internal/distribution/licenses/ripgrep-COPYING.txt",
+        "bytes": 126,
+        "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f",
+        "sourceUrl": "https://raw.githubusercontent.com/BurntSushi/ripgrep/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/COPYING"
+      },
+      {
+        "path": "internal/distribution/licenses/ripgrep-LICENSE-MIT.txt",
+        "bytes": 1081,
+        "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f",
+        "sourceUrl": "https://raw.githubusercontent.com/BurntSushi/ripgrep/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/LICENSE-MIT"
+      },
+      {
+        "path": "internal/distribution/licenses/ripgrep-UNLICENSE.txt",
+        "bytes": 1211,
+        "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+        "sourceUrl": "https://raw.githubusercontent.com/BurntSushi/ripgrep/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/UNLICENSE"
+      },
+      {
+        "path": "internal/distribution/licenses/zsh-LICENCE.txt",
+        "bytes": 1963,
+        "sha256": "d06fdf3ef9b1ec69d6b9e170b0a9516fbad3523261ff1668bde3bfea6e0ef5f5",
+        "sourceUrl": "https://raw.githubusercontent.com/zsh-users/zsh/77045ef899e53b9598bebc5a41db93a548a40ca6/LICENCE"
+      },
+      {
+        "path": "internal/distribution/licenses/go-LICENSE.txt",
+        "bytes": 1453,
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+        "sourceUrl": "https://raw.githubusercontent.com/golang/go/go1.27.1/LICENSE"
+      }
+    ],
+    "wrapperNotice": {
+      "path": "internal/distribution/licenses/codex-openrouter-LICENSE.txt",
+      "bytes": 1086,
+      "sha256": "ccdedf839056694ee5d0672b9513ac956d6c48a583ae8ce28fc12c40fcfd023b",
+      "matchesRepositoryFile": "LICENSE"
+    },
+    "bundledNoticeProvenance": {
+      "ripgrep": "Bundled codex-path/rg is ripgrep 15.2.0, revision e89fff89ac (measured: rg --version). The project is offered under MIT or Unlicense; all supplied notice texts are retained.",
+      "zsh": "The bundled zsh is the codex-zsh artifact from upstream release rust-v0.134.0-alpha.3, selected by scripts/codex_package/codex-zsh at the pinned source commit. Its build workflow pins ZSH_COMMIT 77045ef899e53b9598bebc5a41db93a548a40ca6 and applies codex-rs/shell-escalation/patches/zsh-exec-wrapper.patch: https://github.com/openai/codex/blob/rust-v0.134.0-alpha.3/.github/workflows/rust-release-zsh.yml. The bundled binary reports zsh 5.9.0.3-test (measured).",
+      "go": "The launcher is built with the staged Go 1.27.1 toolchain; the statically linked Go runtime requires this notice in the release materials.",
+      "scope": "Provenance is recorded for these bundled components and the Codex package itself; it is not a complete audit of every transitive native component."
+    }
+  },
+  "provenance": {
+    "fetchedAt": "2026-09-22",
+    "checksumSource": "GitHub release asset digest fields and the codex-package_SHA256SUMS release asset",
+    "sha256sumsAssetSha256": "e7c267fa8cda3fb783be8380ef9c2b660ceea740426bbae17ac1df8cd1012937",
+    "sigstore": "linux-musl-only",
+    "codeSignature": {
+      "appleTeamId": "2DC432GLL2"
+    }
+  },
+  "targets": [
+    {
+      "id": "darwin-arm64",
+      "rustTarget": "aarch64-apple-darwin",
+      "os": "darwin",
+      "arch": "arm64",
+      "entrypoint": "bin/codex",
+      "osMinimum": "15.0",
+      "archive": {
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.155.1/codex-package-aarch64-apple-darwin.tar.gz",
+        "format": "tar+gzip",
+        "bytes": 122962085,
+        "sha256": "e6e08717da9e35b72332eff753527fe79a9ae876081033c5c6820a8e5f58b943",
+        "redirectHosts": [
+          "objects.githubusercontent.com",
+          "release-assets.githubusercontent.com"
+        ]
+      },
+      "extraction": {
+        "extractedBytes": 317010263,
+        "fileCount": 42,
+        "directoryCount": 10,
+        "maxFiles": 64,
+        "maxBytes": 335544320,
+        "allowedTypes": [
+          "regular"
+        ]
+      },
+      "inventory": [
+        {
+          "path": "bin/codex",
+          "sha256": "8eaf1ad12fe6bf89b1710330f58900014322c7c5af677e43be116d8ac5fc0a9e",
+          "bytes": 228803200,
+          "executable": true
+        },
+        {
+          "path": "bin/codex-code-mode-host",
+          "sha256": "59a702a68f1ef79fceaca644db46b8385ceefbb66035e78b8ade7cdcc21fda55",
+          "bytes": 62802592,
+          "executable": true
+        },
+        {
+          "path": "codex-package.json",
+          "sha256": "b4895dbb7a0b6532d819809d798eca98e0f6c3dcaa417ad9b39bc32640618424",
+          "bytes": 200,
+          "executable": false
+        },
+        {
+          "path": "codex-path/rg",
+          "sha256": "c6c50764c763f44464bd4681dc0392668b2cb42f88bd123f8d0b43fbf3b02576",
+          "bytes": 4030432,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/NOTICE.md",
+          "sha256": "edadf0a401a293778fdb7416707b1ac55df26a686388d3b2db72cd2043763c16",
+          "bytes": 1079,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/bin/codex-voice-host",
+          "sha256": "be67257c4308d9f8460493ab1789297350b2d398547087fe0bff7bcc624c443d",
+          "bytes": 9283600,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libffi.8.dylib",
+          "sha256": "4fa18eb30e8407e5cc16afa30a643b402a22c0ea37a6dc9450ab99aecd88f62e",
+          "bytes": 136768,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgio-2.0.0.dylib",
+          "sha256": "0e31023e6498d08ae702019ac4cd8d388c96afba6085e28c9ea5ba5efb8075e1",
+          "bytes": 1866272,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libglib-2.0.0.dylib",
+          "sha256": "23c39e06b864f74d8b86b3ae9596568a5b009823e38d29fe462b44804cb2e606",
+          "bytes": 1310992,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
+          "sha256": "46058202a8a679fae5b248bf74f5daaa37ada6c46991d35bb65b9a2d5f1cf686",
+          "bytes": 68912,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgobject-2.0.0.dylib",
+          "sha256": "eca170837e173884a736343c58268d1ef7adae9034b6d3b8d3e0b8d36336301a",
+          "bytes": 403088,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
+          "sha256": "3f6a6542b8bcbf3cbfb0fd9246abc9a858722d1dd5b74e268f15c8e06c74d2c1",
+          "bytes": 152608,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
+          "sha256": "0d8ee5b5dc742324c9ab74e4384378e7373900b8fbfa5a4101f153e429033561",
+          "bytes": 530400,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
+          "sha256": "0b4ecd24beb23e6f258bfd661a33ff3d1e4a7383e46aedba2085df567a9951ab",
+          "bytes": 505968,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
+          "sha256": "a5edfbbddd1875472d0ce14a2673a740705a2449780b95c70149fd425fa6244c",
+          "bytes": 117008,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
+          "sha256": "d2cef4b2287ed3bdb5d71f50f4071917531155312aed24d869e0228e03827571",
+          "bytes": 309856,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
+          "sha256": "39c1725b3aae9d9aa154e7937988032b23f67d98c4ab6e4a38fb2bad247d544b",
+          "bytes": 1304704,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
+          "sha256": "473813e09b9a1db3ea131662c90907eb9aaaec504078767f503440243866c4b3",
+          "bytes": 205696,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
+          "sha256": "645fdcf191167e7be94f3cdf6c526960d27ce99665ba5947eb407132286340c4",
+          "bytes": 283696,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
+          "sha256": "39fb8be790e196e686690ebf75e5f7c4558d5a4e4e79c57c41743004a68f1e39",
+          "bytes": 903664,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libintl.8.dylib",
+          "sha256": "686944b9fccfc3179bb91a3d12ebd5cfcf8fb1d0100da63c4f3b0f3be86305db",
+          "bytes": 50112,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libopus.0.dylib",
+          "sha256": "3090c1988f7046c78c4856e115ac93d9917830e4d8bb27327b43c64447f82a92",
+          "bytes": 504080,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libpcre2-8.0.dylib",
+          "sha256": "fcae9e2caaf8c516244c95b386299b0c8a706df95b3a4f20245b1a61732a8b5c",
+          "bytes": 456816,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/lib/libz.1.dylib",
+          "sha256": "df31491c6d32ec00c2411359524b0bc0ed3e6e1e8c49bd5561ed8890911ec25c",
+          "bytes": 123312,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/licenses/LGPL-2.1.txt",
+          "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db",
+          "bytes": 26431,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/licenses/Opus.txt",
+          "sha256": "01e1167d54a096d123cf6dfbbeb19587278845c6481d2d66d545669846079551",
+          "bytes": 1945,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/licenses/PCRE2.md",
+          "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811",
+          "bytes": 4011,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/licenses/libffi.txt",
+          "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c",
+          "bytes": 1132,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/licenses/proxy-libintl.txt",
+          "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
+          "bytes": 25292,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/licenses/sljit.txt",
+          "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb",
+          "bytes": 1444,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/licenses/zlib.txt",
+          "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+          "bytes": 1002,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/manifest.json",
+          "sha256": "0e5ab5f2c4d3b9b07aa7ef0166cb4cca9f30672b63c90ebb11f1acd5920b0928",
+          "bytes": 4637,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstapp.dylib",
+          "sha256": "127b3740d40a727102239061bd179e850c78c4736291fe55a38da9c8630b91f4",
+          "bytes": 49872,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstaudioconvert.dylib",
+          "sha256": "ea1048cab051959cdc8730ec186274389f41b22848e7aed470ae936e1cf5a01e",
+          "bytes": 93824,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstaudioresample.dylib",
+          "sha256": "b1faf437f781386e98e79688fec332816fc741304d70c1fca41ca52447b5b5e4",
+          "bytes": 91840,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstcoreelements.dylib",
+          "sha256": "3fec07badb54b1364e1a906efa305ac73b7c86275c79cb2767eae9a39df0453f",
+          "bytes": 446608,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstopus.dylib",
+          "sha256": "fd2b9cb054f7dec866c508212d345a5459097f7f550e676f2a29ba14fb48f8a8",
+          "bytes": 131680,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstrtp.dylib",
+          "sha256": "c8910ce8ffdd66e5d1e8c3d69beb282506905d73e8baf3a73f18216a43cec76d",
+          "bytes": 673888,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/plugins/libgstrtpmanager.dylib",
+          "sha256": "338cd280a8d2693358d21039b8c429199ab178b9b5b7693c2d35443bdf04ac64",
+          "bytes": 527568,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/runtime.json",
+          "sha256": "27db27d294d7c76fadb0c7dfd6d6e9130f4c2fd2448ec633517067ad1542ca00",
+          "bytes": 14915,
+          "executable": true
+        },
+        {
+          "path": "codex-resources/voice/sources.json",
+          "sha256": "e2f6b124f6277e7c3c4f5c7cc8830c66190f671ad65e972bb2cc9507dbfcb937",
+          "bytes": 4911,
+          "executable": false
+        },
+        {
+          "path": "codex-resources/zsh/bin/zsh",
+          "sha256": "7f3cb812c2954e63cafd045acfcc8093319529eea532979a73a813e3745c9bd3",
+          "bytes": 754208,
+          "executable": true
+        }
+      ]
+    }
+  ]
+}
