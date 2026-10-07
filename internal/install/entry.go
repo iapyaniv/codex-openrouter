@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	json "encoding/json/v2"
-
 	"codex-openrouter/internal/distribution"
 	"codex-openrouter/internal/platform"
 )
@@ -24,7 +22,6 @@ func sum(data []byte) string {
 
 type priorEntry struct {
 	data []byte
-	link string
 	info os.FileInfo
 }
 
@@ -70,39 +67,7 @@ func inspectPublic(prefix, public string, sourceInfo os.FileInfo, sourceBytes []
 		return priorEntry{}, errors.New("run --install from a downloaded copy outside the public command being replaced")
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
-		if err := checkLinkOwner(info); err != nil {
-			return priorEntry{}, err
-		}
-		link, err := os.Readlink(public)
-		if err != nil {
-			return priorEntry{}, err
-		}
-		packageRoot := filepath.Join(prefix, "lib", "node_modules", "codex-openrouter")
-		target := filepath.Join(packageRoot, "codex-openrouter.mjs")
-		if link != "../lib/node_modules/codex-openrouter/codex-openrouter.mjs" && link != target {
-			return priorEntry{}, errors.New("refusing an unrelated public symlink")
-		}
-		for _, path := range []string{filepath.Join(prefix, "lib"), filepath.Join(prefix, "lib", "node_modules"), packageRoot} {
-			if err := checkedDirectory(path, false); err != nil {
-				return priorEntry{}, err
-			}
-		}
-		if _, _, err := readChecked(target, 1<<20); err != nil {
-			return priorEntry{}, err
-		}
-		data, _, err := readChecked(filepath.Join(packageRoot, "package.json"), 64<<10)
-		if err != nil {
-			return priorEntry{}, err
-		}
-		var identity struct {
-			Name    string            `json:"name"`
-			Version string            `json:"version"`
-			Bin     map[string]string `json:"bin"`
-		}
-		if json.Unmarshal(data, &identity) != nil || identity.Name != "codex-openrouter" || identity.Version == "" || len(identity.Bin) != 1 || identity.Bin["codex-openrouter"] != "codex-openrouter.mjs" {
-			return priorEntry{}, errors.New("public symlink does not identify the expected legacy package")
-		}
-		return priorEntry{link: link, info: info}, nil
+		return priorEntry{}, errors.New("refusing a public symlink; move it aside explicitly before installation")
 	}
 	data, opened, err := readChecked(public, maxLauncherBytes)
 	if err != nil {

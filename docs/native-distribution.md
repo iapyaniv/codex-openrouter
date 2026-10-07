@@ -1,7 +1,7 @@
 # Native Codex distribution
 
 This document records how the launcher obtains and lays out the upstream
-Codex native distribution, and what has actually been validated. Values are
+Codex native distribution. Values are
 marked **measured** (run on the development host, macOS 26.5.1 arm64),
 **source-derived** (read from upstream code/docs at the pinned tag), or
 **unverified** (metadata inventoried but not executed). The machine-readable
@@ -161,42 +161,6 @@ This records the exact included notices and their provenance. It is not a
 license certification or legal audit, and it does not claim a complete
 audit of every transitive native component.
 
-## Preliminary Node-free execution evidence (measured, 2026-09-22)
-
-All runs used `env -i` with only `HOME`, `PATH=/usr/bin:/bin`, and a
-disposable `CODEX_HOME` under the scratch prefix — no Node, no
-package-manager markers, no API credentials:
-
-- `bin/codex --version` → `codex-cli 0.155.1`, exit 0.
-- `bin/codex --help` → full usage, exit 0.
-- `codex-path/rg --version` → `ripgrep 15.2.0 (rev e89fff89ac)`, and a
-  content search on a sample file matched — the bundled tool executes.
-- `codex doctor --json` → package layout detected and
-  `runtime.search: ok - search command found (bundled)` resolving to the
-  extracted `codex-path/rg`. This is layout-detection and bundled-path
-  evidence, not an inventory audit: the doctor installation check covers
-  PATH/package-manager provenance only. Remaining findings were the
-  expected no-credentials/no-network/`TERM=dumb` ones from the scrubbed
-  environment, not resource failures.
-- `codex exec` with the wrapper's exact injected `-c` set
-  (`model_provider`, inline provider table with `auth={command=...}`
-  pointing at a stub helper, model, reasoning,
-  `check_for_update_on_startup=false`, the two `shell_environment_policy`
-  lines, `features.shell_snapshot=false`) was accepted by the real binary:
-  the session started, the config parsed, and it proceeded to contact the
-  (deliberately unreachable) loopback provider. This establishes that the
-  injected configuration is parsed and a connection is attempted. It does
-  **not** by itself prove the command-backed auth helper was invoked or that
-  authentication succeeded. The completed 2026-09-30 installed-command checks
-  below use an instrumented mock provider and verify authentication. No real
-  provider traffic or credentials were used in these preliminary runs.
-
-`--version`/`--help` alone do not exercise bundled resources; the `rg`,
-doctor, and exec checks above are what is claimed. M0 did not validate
-interactive TUI behavior or Ctrl-C/signal handling; the subsequent Go
-candidate evidence below covers those checks. Voice, code-mode-host
-execution, and the zsh-exec bridge remain unverified.
-
 ## Platform minimums
 
 Measured from Mach-O load commands (`vtool`) of the shipped darwin/arm64
@@ -224,82 +188,6 @@ arm64 — the binaries were executed there and nowhere older. The core
 verified support floor for the full package. Linux (musl static builds) and
 Windows minimums are **unverified**: no host was available to run or inspect
 them. Do not infer them from Go's supported-platform list.
-
-## Go toolchain pin
-
-- Selected **Go 1.27.1** (`go1.27.1`, the latest stable patch release listed
-  by the official download metadata on 2026-09-22). The host's preinstalled
-  Go 1.24.5 was deliberately not used: it is no longer the supported line
-  and was not chosen as the baseline.
-- Download: `go1.27.1.darwin-arm64.tar.gz`, 68,100,347 bytes, sha256
-  `ee215d57e0ec269c60cc9ceca68e6bda321ba9ee5afe24f4b0988703c2d87d12`,
-  taken from `https://go.dev/dl/?mode=json&include=all` and re-hashed after
-  download — match.
-- Staged at `toolchain/go` under the scratch prefix (not in the repository,
-  not in Homebrew, no global state changed). `.go-version` records `1.27.1`.
-- Hygiene check: a trivial scratch module builds with `GOTOOLCHAIN=local
-  GOPROXY=off` and a scratch `GOCACHE`. This proves the staged toolchain
-  itself compiles offline and cannot silently switch toolchains. CI must set
-  the same variables.
-- Repository evidence (measured 2026-09-22, M1): with `GOTOOLCHAIN=local
-  GOPROXY=off` and scratch `GOCACHE`/`GOMODCACHE`, the staged toolchain ran
-  `go build ./...`, `go vet ./...`, `go test ./...`, and `go test -race
-  ./...` offline with no module downloads — the module is standard-library
-  only. On 2026-09-30 the M2 candidate also passed vet, ordinary and race
-  tests, and real-Codex loopback integration against a fully verified test
-  release layout. The test builds with `CGO_ENABLED=0`, `-trimpath`, and
-  `-buildvcs=false`, stamps the actual source/build-input digest, and checks
-  that Node/npm/Go are absent from the native tool environment. The subsequent
-  installer evidence below covers disposable installation only; no
-  replacement release has been published.
-
-## Go candidate launch evidence (measured, 2026-09-30)
-
-The integration test in `internal/integration/` copies all 42 verified native
-files into the launcher's shared immutable release layout, retains all eight
-embedded notices and the exact audit manifest, and writes completion metadata
-last. It uses isolated HOME/ZDOTDIR/CODEX_HOME and synthetic credentials. Real
-Codex authenticates through the immutable Go helper from a prefix containing
-spaces, Unicode, quotes, a backslash, and DEL. Both legacy and canonical shell
-filters preserve the existing credential isolation and settings contracts;
-bundled ripgrep searches a sample file and bundled zsh executes with `-f`.
-The test's controlled probe runs with `danger-full-access`; no OS-sandbox,
-voice, or code-mode-host execution is claimed.
-
-Separate terminal checks reach the native Codex TUI with the selected saved
-model/reasoning and the correct working directory. A single Ctrl-C exits zero
-and SIGTERM terminates by signal 15, with no timeout kills. Unix subprocess
-regressions verify exact PID preservation, argv/environment/cwd, redirected
-streams, and native exit 42. Six candidate target builds compile; this adds no
-runtime evidence for the other architectures or operating systems. Regression
-checks cover linked trusted parents and the canonical macOS temporary
-directory used in integration trust configuration.
-
-## Go installer evidence (measured, 2026-09-30)
-
-The candidate's `--install` downloads the pinned full package over actual
-verified HTTPS into a disposable prefix, verifies compressed bytes before
-extraction, enforces total decompression and exact inventory limits, and runs
-bounded credential-free native version/help probes. It installs all notices
-and the exact audit manifest, writes completion metadata last, then publishes
-the release and activates a regular public executable. An independent check
-confirms all 42 native file lengths/hashes, exact native directories, eight
-notices, helper/public digest and completion identity, and private permissions.
-
-The installed public command passes real-Codex loopback integration for both
-shell-policy formats. Fresh installation leaves settings absent; repeat
-installation preserves saved defaults and ordinary user TOML. Installed-command
-version/help/config checks and separate Ctrl-C/SIGTERM terminal checks pass
-without timeout kills. The tests use synthetic credentials and private
-HOME/ZDOTDIR/CODEX_HOME; the user's prefix and shell profiles remain untouched.
-
-Only darwin/arm64 is enabled for installation, with the manifest's macOS 15
-minimum checked before prefix initialization. Other platforms, native Windows
-migration/ACL/replacement behavior remain
-open. The initial installer and [local candidate packaging](releasing.md) are
-verified; hosted CI has not run. The Go source replaces the historical Node
-implementation, whose installed package tree remains available for recovery.
-Build and verify each final artifact from its exact clean source before use.
 
 ## Other targets (unverified, not installable)
 
@@ -332,24 +220,11 @@ Notes:
   bundles for these two archives only.
 - windows layout and minimums are unconfirmed.
 
-## Platform verification and release gates
+## Open work for other platforms
 
-Launcher-level runtime gates that remain open, by platform:
-
-- **Windows.** Withheld from the initial release. Cross-compilation of the
-  application and test packages is checked, but cross-compilation is not
-  execution. Open items with no Windows runtime evidence yet: `os.Rename`
-  (MoveFileExW with MOVEFILE_REPLACE_EXISTING) cannot replace a running
-  executable image or a file held open without delete sharing, and its
-  behavior on ambiguous failures is unverified; `os.Chmod` is not a
-  directory ACL, so the replace-failure test cannot force an error there
-  and native failure evidence remains pending; the directory checks reject
-  reparse points but are not a full Windows ACL audit. The native runtime
-  gate in the specification stays open until these cases are exercised on
-  hardware.
-  A private user-controlled prefix is a prerequisite for any Windows
-  installation, and the manifest publishes no Windows target. Native Windows
-  support requires resolving the privacy (ACL audit) and
-  replacement/console gates on hardware before publication.
-- **darwin/amd64, linux, windows archives.** Unverified and not installable
-  as recorded above; per-file inventories unpinned except darwin/arm64.
+- **Windows:** `os.Rename` cannot replace a running executable, and the
+  directory checks are not a full ACL audit. Both need tests on real
+  hardware before Windows installs are enabled.
+- **Intel Mac and Linux:** pin the per-file inventory (Linux also ships
+  `codex-resources/bwrap`), add the target to `codex-artifacts.json`, and run
+  the native install test on that platform.

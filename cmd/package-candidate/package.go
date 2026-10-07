@@ -332,27 +332,21 @@ func candidateArchive(contents map[string][]byte) ([]byte, error) {
 func installInstructions(version, commit, minimum string) string {
 	return fmt.Sprintf(`# codex-openrouter %s
 
-This local candidate supports macOS %s or later on Apple Silicon. Other
-platforms are withheld. Node, npm, and Go are not needed to install or run it.
+For Apple Silicon Macs with macOS %s or later.
 
-Compare the following hash with the archive's line in SHA256SUMS before
-extracting it:
+Install from this directory:
 
-    shasum -a 256 codex-openrouter_%s_darwin_arm64.tar.gz
-    tar -xzf codex-openrouter_%s_darwin_arm64.tar.gz
     ./codex-openrouter --install
 
-Run --install from this downloaded copy, rather than the installed command.
-The installer prints the public command path and directory to add to PATH.
-It preserves saved defaults and previous releases. Set OPENROUTER_API_KEY in
-your environment before starting an authenticated session; version/help do
-not need a key. Keep the downloaded copy for retry and rollback.
+The installer downloads the pinned Codex bundle into ~/.codex-openrouter,
+keeps your saved defaults, and prints the directory to add to PATH. Then set
+OPENROUTER_API_KEY and run codex-openrouter. To update later, run --install
+from a newly downloaded release, not from the installed command.
 
-Source commit: %s. BUILD.json records the compiler, build inputs and identity;
-candidate.json beside the archive also records final artifact checksums.
-These local checksums have no independent signature or hosted attestation.
-This launcher has no publisher code signature or notarization. macOS policy
-may restrict downloaded software; this candidate has only local execution
-evidence. The upstream native bundle is separately pinned by the launcher.
-`, version, minimum, version, version, commit)
+This binary is not signed or notarized. If macOS blocks it, run:
+
+    xattr -d com.apple.quarantine codex-openrouter
+
+Source commit: %s. BUILD.json records the compiler and build inputs.
+`, version, minimum, commit)
 }

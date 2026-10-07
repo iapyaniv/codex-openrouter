@@ -1,4 +1,3 @@
-node_modules/
 /dist/
 /codex-openrouter
 /codex-openrouter.exe
@@ -7,6 +6,5 @@ node_modules/
 .env
 .env.*
 config.json
-*.tgz
 *.log
 .DS_Store

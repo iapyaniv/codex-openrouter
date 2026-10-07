@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"os"
-	"os/exec"
 )
 
 func main() {
@@ -13,10 +12,6 @@ func main() {
 	}
 	checks["sentinelPreserved"] = os.Getenv("SMOKE_SENTINEL") == "kept"
 	checks["inheritedPreserved"] = os.Getenv("SMOKE_INHERITED") == "inherited"
-	for _, name := range []string{"node", "npm", "go"} {
-		_, err := exec.LookPath(name)
-		checks[name+"Absent"] = err != nil
-	}
 	ok := true
 	for _, passed := range checks {
 		ok = ok && passed

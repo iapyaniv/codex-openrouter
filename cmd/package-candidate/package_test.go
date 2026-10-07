@@ -18,6 +18,9 @@ func TestExactCommittedCandidate(t *testing.T) {
 	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" {
 		t.Skip("candidate packaging executes its darwin/arm64 artifact and requires Apple Silicon macOS")
 	}
+	if testing.Short() {
+		t.Skip("builds the launcher twice")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	root := t.TempDir()

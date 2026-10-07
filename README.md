@@ -1,109 +1,102 @@
 # codex-openrouter
 
-Run [Codex CLI](https://github.com/openai/codex) directly with OpenRouter, without a local proxy. Defaults to [DeepSeek V4.1 Flash](https://openrouter.ai/deepseek/deepseek-v4.1-flash) with explicit `high` reasoning. Your regular Codex configuration still applies; model and provider overrides apply only to this command and do not rewrite your normal Codex defaults.
+Run the [Codex CLI](https://github.com/openai/codex) with any [OpenRouter](https://openrouter.ai) model, without a local proxy.
 
-The Go launcher runs without **Node, npm, or Go installed** and manages a separate pinned Codex **0.155.1** bundle. The initial installer supports **Apple Silicon Macs with macOS 15 or later**. Local execution was tested on macOS 26.5.1 ARM64; the macOS 15 minimum comes from bundle requirements. Other macOS, Linux, and Windows targets have compile checks only and remain withheld.
+`codex-openrouter` installs its own pinned copy of Codex (0.155.1) and starts it with OpenRouter as the model provider. The default model is [DeepSeek V4.1 Flash](https://openrouter.ai/deepseek/deepseek-v4.1-flash) with `high` reasoning. Your normal `codex` install and its configuration are not changed.
+
+This is an unofficial tool. It is not affiliated with OpenAI or OpenRouter.
+
+**You need:** an Apple Silicon Mac with macOS 15 or later, and an [OpenRouter API key](https://openrouter.ai/settings/keys).
 
 ## Install
 
-No downloadable release has been published. Public releases are blocked by the [unfinished native dependency review](SECURITY.md#native-gix-dependency-advisories). To prepare a local candidate on an Apple Silicon Mac, follow the [trusted-commit bootstrap procedure](docs/releasing.md#build-a-local-candidate) with Git and the pinned Go **1.27.1** compiler. It builds from a fresh checkout of the selected trusted full commit and verifies the launcher's identity.
-
-In the output directory, compare the archive hash with its line in `SHA256SUMS`, then extract and install:
+Download the release and run its installer:
 
 ```sh
-shasum -a 256 codex-openrouter_0.2.0-local_darwin_arm64.tar.gz
-tar -xzf codex-openrouter_0.2.0-local_darwin_arm64.tar.gz
+VERSION=0.2.0
+mkdir -p ~/Downloads/codex-openrouter-$VERSION && cd ~/Downloads/codex-openrouter-$VERSION
+curl -fLO "https://github.com/iapyaniv/codex-openrouter/releases/download/v$VERSION/codex-openrouter_${VERSION}_darwin_arm64.tar.gz"
+tar -xzf "codex-openrouter_${VERSION}_darwin_arm64.tar.gz"
 ./codex-openrouter --install
 ```
 
-The archive contains installation instructions, provenance and notices. Local checksums are not independently signed; this launcher has no publisher signature or notarization. See [candidate builds and verification limits](docs/releasing.md). The downloaded executable needs network access to fetch its pinned Codex bundle, but no Node/npm/Go or administrator privileges. Keep that copy outside the installation prefix for updates and recovery; the installed public command cannot install over itself. Existing saved defaults are preserved. To choose a default, run `--set-default` after installation.
+The installer downloads Codex (about 120 MB) from its GitHub release, checks its SHA-256, and installs it in `~/.codex-openrouter`. It does not need `sudo` and does not edit your shell profile.
 
-Add the installation directory to PATH and enter an [OpenRouter API key](https://openrouter.ai/settings/keys) without putting it in shell history:
+The binary is not signed or notarized by Apple. `curl` downloads do not trigger Gatekeeper, so the steps above work. If you download the archive with a browser, macOS blocks the binary. To allow it, run `xattr -d com.apple.quarantine codex-openrouter`.
 
-**macOS (Bash or Zsh)**
+Add the install directory to your `PATH`. To keep it for new terminals, also add this line to `~/.zshrc`:
 
 ```sh
 export PATH="$HOME/.codex-openrouter/bin:$PATH"
-read -rs OPENROUTER_API_KEY
-export OPENROUTER_API_KEY
+```
+
+## Set your API key
+
+```sh
+read -rs OPENROUTER_API_KEY && export OPENROUTER_API_KEY
 codex-openrouter
 ```
 
-These environment changes apply to the current terminal. Persist PATH in your shell profile; supply the key per session or through a secret manager. The installer prints the directory to add and does not edit your profile.
+`read -s` keeps the key out of your shell history. To keep the key for new terminals, add `export OPENROUTER_API_KEY="..."` to `~/.zshrc` with a text editor and run `chmod 600 ~/.zshrc`. That file then holds the key in plain text.
 
-By default, shell tools receive an empty OpenRouter key, filter other `KEY`/`SECRET`/`TOKEN` variables, and disable legacy snapshots. This does not isolate secrets from all code running as your user. See the dated [security review](SECURITY.md) for findings and limits.
-
-### Persist the key in Zsh
-
-To load the key automatically in new Zsh terminals, open your startup file:
+## Use
 
 ```sh
-nano ~/.zshrc
+codex-openrouter                                # interactive session
+codex-openrouter exec "Explain this project"    # one-shot task
+codex-openrouter -m provider/model              # different model for this session
 ```
 
-Add this line with your actual key:
+Arguments go to Codex unchanged, except for the wrapper options below.
 
-```sh
-export OPENROUTER_API_KEY="your-openrouter-api-key"
-```
+| Option | Effect |
+| --- | --- |
+| `--set-default MODEL [--reasoning LEVEL]` | Save the default model and reasoning level |
+| `--show-config` | Print the settings file and the saved defaults |
+| `--install` | Install or update (run it from a downloaded copy) |
+| `--launcher-version` | Print the wrapper and pinned Codex versions |
+| `--launcher-help` | Print the wrapper help |
 
-Save with **Ctrl+O**, Enter, then exit with **Ctrl+X**. Restrict file access and load it in the current terminal:
+Use full OpenRouter model IDs, for example `deepseek/deepseek-v4.1-flash`. Reasoning levels are `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`. Not all models support reasoning. The settings file is `~/.codex-openrouter/config.json`.
 
-```sh
-chmod 600 ~/.zshrc
-source ~/.zshrc
-```
+To install somewhere other than `~/.codex-openrouter`, set `CODEX_OPENROUTER_HOME` to an absolute path. Set it for both `--install` and normal use.
 
-This stores the key **in plaintext**. Keep the file out of Git and shared dotfile backups. Editing the file avoids putting the key in shell command history. Shell tools that reload this profile can recover the key despite environment filtering.
+## Update
 
-## Change models
-
-```sh
-codex-openrouter --set-default provider/model --reasoning high
-codex-openrouter --show-config
-codex-openrouter -m provider/model          # One session only
-codex-openrouter exec "Explain this project"
-```
-
-Other arguments pass through to Codex. Use a full OpenRouter model ID; reasoning support varies by model. A model-only `--set-default` preserves saved reasoning. `--version` reports Codex's version; `--launcher-version` reports the wrapper identity. Neither version nor help requires a key.
-
-You can also edit `~/.codex-openrouter/config.json`:
-
-```json
-{
-  "model": "deepseek/deepseek-v4.1-flash",
-  "reasoning": "high"
-}
-```
-
-Only these two fields are accepted. Keep API keys in `OPENROUTER_API_KEY`. Set `CODEX_OPENROUTER_HOME` to an absolute private directory before installing **and** running to relocate the installation/config.
-
-## Update and recovery
-
-Run `./codex-openrouter --install` from a newly verified downloaded candidate to update. `codex-openrouter update` prints these instructions; Codex's own update prompts are disabled. Installations retain previous releases and the old npm package tree, preserve saved defaults, and leave your separate ordinary Codex installation/configuration untouched.
-
-If launch reports a missing release, rerun its trusted downloaded installer. If a release is corrupt or incomplete, close affected Codex sessions, move aside only the specific `releases/<release-id>` directory named in the diagnostic, then rerun the **same trusted candidate** installer. Do not merge into an incomplete release or delete arbitrary paths. A failure reported after activation may leave the new command installed; use the explicit path in the diagnostic and retry its downloaded installer.
-
-To downgrade Go releases, close affected sessions and run an earlier trusted downloaded executable's `--install`. To return to the Node version, keep the retained npm package tree and restore Node 22+/npm 10+, then use a separate checkout of the historical installer:
-
-```sh
-git worktree add ../codex-openrouter-node d14e315523590e651862ec712a60758f2faae473
-cd ../codex-openrouter-node
-node install.mjs
-```
-
-That recovery path requires the original repository history; a source archive alone contains no Git history. The historical installer preserves default values. Set the same `CODEX_OPENROUTER_HOME` if you relocated the prefix. Keep retained releases until sessions using them have closed.
+Download the new release and run its `./codex-openrouter --install`, as in [Install](#install). Your saved defaults stay. Codex's own updater is turned off because it cannot update this install; `codex-openrouter update` prints these steps.
 
 ## Uninstall
 
-Close affected sessions, then remove `~/.codex-openrouter` (or your chosen prefix) and its PATH entry. This deletes saved wrapper defaults, retained Go releases and the retained npm tree; it does not delete ordinary Codex state under `CODEX_HOME`. Earlier `open-codex` and `codex-kimi` installations remain separate; their saved defaults are not migrated automatically.
+```sh
+rm -rf ~/.codex-openrouter
+```
 
-## Validation and interface changes
+Then remove the `PATH` line from your shell profile. This does not touch your normal Codex install or `~/.codex`.
 
-With the pinned compiler, run `GOTOOLCHAIN=local GOPROXY=off go test ./...` for offline regression checks. [Maintainer instructions](docs/releasing.md) cover race, native HTTPS/loopback integration and vulnerability scans. CI is configured but no hosted run is claimed.
+## Security
 
-The Go migration replaces `node install.mjs`/`install.sh` with the downloaded executable's `--install`, moves install-time model/reasoning selection to `--set-default`, adds `--launcher-version`, and uses immutable release-local authentication helpers. Only darwin-arm64 is initially enabled. Settings and normal Codex argument forwarding remain compatible. MIT licensed.
+Codex normally lets the commands it runs see your environment, which includes `OPENROUTER_API_KEY`. On each launch, `codex-openrouter` gives those commands an empty key, turns on Codex's filter for other `*KEY*`, `*SECRET*` and `*TOKEN*` variables, and turns off shell snapshots. This is not a sandbox. See [SECURITY.md](SECURITY.md) for the limits.
+
+## Build from source
+
+You need Git and Go 1.21 or later. Go downloads the pinned 1.27.1 toolchain automatically.
+
+```sh
+git clone https://github.com/iapyaniv/codex-openrouter.git && cd codex-openrouter
+go build -o /tmp/codex-openrouter \
+  -ldflags "-X codex-openrouter/internal/launcher.BuildID=$(git rev-parse --short HEAD)" \
+  ./cmd/codex-openrouter
+/tmp/codex-openrouter --install
+```
+
+The installer refuses a build without a `BuildID`. Run the tests with `go test ./...`. [docs/releasing.md](docs/releasing.md) shows how to make and publish a release.
 
 ## To do
 
-- Saved-key authentication using the OS credential store. For now, supply `OPENROUTER_API_KEY` through the environment, per session or through your shell profile as described above.
+- Store the API key in the macOS Keychain.
+- Support Intel Macs, Linux and Windows. These compile, but Codex bundles for them are not pinned or tested yet.
+- Sign and notarize the macOS binary.
+
+## License
+
+MIT. Each release includes the licenses of the bundled Codex, ripgrep, zsh and Go components.

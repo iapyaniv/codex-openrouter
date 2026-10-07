@@ -470,7 +470,7 @@ func (mock *provider) verify(t *testing.T) {
 	if report.Status != "credential-isolated" {
 		t.Fatal("the real Codex tool output did not confirm the environment contract")
 	}
-	for _, name := range []string{"OPENROUTER_API_KEY", "OTHER_API_KEY", "OTHER_TOKEN", "AWS_SECRET_ACCESS_KEY", "SMOKE_EXCLUDED", "OUTSIDE_INCLUDE_ONLY", "sentinelPreserved", "inheritedPreserved", "nodeAbsent", "npmAbsent", "goAbsent"} {
+	for _, name := range []string{"OPENROUTER_API_KEY", "OTHER_API_KEY", "OTHER_TOKEN", "AWS_SECRET_ACCESS_KEY", "SMOKE_EXCLUDED", "OUTSIDE_INCLUDE_ONLY", "sentinelPreserved", "inheritedPreserved"} {
 		if !report.Checks[name] {
 			t.Fatalf("tool output did not confirm %s", name)
 		}

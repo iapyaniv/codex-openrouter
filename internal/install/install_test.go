@@ -213,11 +213,11 @@ func TestRepeatedUpgradeDowngradeAndSelfInstall(t *testing.T) {
 	}
 }
 
-func TestPublicEntryRecognitionAndLegacyMigration(t *testing.T) {
+func TestPublicEntryRecognition(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("Unix npm links")
+		t.Skip("Unix public links")
 	}
-	for _, name := range []string{"legacy relative", "legacy absolute", "unrelated file", "unrelated link", "symlink dotdot alias", "old artifact digest"} {
+	for _, name := range []string{"unrelated file", "unrelated link", "old artifact digest"} {
 		t.Run(name, func(t *testing.T) {
 			root := t.TempDir()
 			prefix := filepath.Join(root, "prefix")
@@ -233,35 +233,10 @@ func TestPublicEntryRecognitionAndLegacyMigration(t *testing.T) {
 			source := testSource(t, root, sourceBytes)
 			ops := operations{transport: archiveTransport(data), probe: noProbe}
 			public := filepath.Join(prefix, "bin", "codex-openrouter")
-			packageRoot := filepath.Join(prefix, "lib", "node_modules", "codex-openrouter")
-			if err := os.MkdirAll(packageRoot, 0o755); err != nil {
-				t.Fatal(err)
-			}
-			packageJSON := []byte(`{"name":"codex-openrouter","version":"0.1.0","bin":{"codex-openrouter":"codex-openrouter.mjs"}}`)
-			if err := os.WriteFile(filepath.Join(packageRoot, "package.json"), packageJSON, 0o644); err != nil {
-				t.Fatal(err)
-			}
-			script := filepath.Join(packageRoot, "codex-openrouter.mjs")
-			if err := os.WriteFile(script, []byte("must never execute legacy contents"), 0o644); err != nil {
-				t.Fatal(err)
-			}
 			var link string
 			switch name {
-			case "legacy relative":
-				link = "../lib/node_modules/codex-openrouter/codex-openrouter.mjs"
-			case "legacy absolute":
-				link = script
 			case "unrelated link":
 				link = source
-			case "symlink dotdot alias":
-				outside := filepath.Join(root, "outside", "child")
-				if err := os.MkdirAll(outside, 0o700); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.Symlink(outside, filepath.Join(prefix, "alias")); err != nil {
-					t.Fatal(err)
-				}
-				link = "../alias/../lib/node_modules/codex-openrouter/codex-openrouter.mjs"
 			case "unrelated file":
 				if err := os.WriteFile(public, []byte("unrelated executable"), 0o700); err != nil {
 					t.Fatal(err)
@@ -305,7 +280,7 @@ func TestPublicEntryRecognitionAndLegacyMigration(t *testing.T) {
 				}
 			}
 			_, err := run(context.Background(), prefix, identity, target, source, io.Discard, ops)
-			if strings.HasPrefix(name, "unrelated") || name == "symlink dotdot alias" {
+			if strings.HasPrefix(name, "unrelated") {
 				if err == nil {
 					t.Fatal("unrecognized public entry overwritten")
 				}
@@ -327,10 +302,7 @@ func TestPublicEntryRecognitionAndLegacyMigration(t *testing.T) {
 			}
 			b, e := os.ReadFile(public)
 			if e != nil || !bytes.Equal(b, sourceBytes) {
-				t.Fatal("recognized migration failed to select native launcher")
-			}
-			if b, e := os.ReadFile(filepath.Join(packageRoot, "package.json")); e != nil || !bytes.Equal(b, packageJSON) {
-				t.Fatal("legacy package was changed")
+				t.Fatal("recognized public entry was not replaced")
 			}
 		})
 	}

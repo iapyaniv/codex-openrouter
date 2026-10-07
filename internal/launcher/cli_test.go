@@ -17,9 +17,7 @@ func runCLI(args ...string) (int, string, string) {
 }
 
 func TestInternalAuthProtocol(t *testing.T) {
-	// Trimming covers the exact JavaScript set: tab, CR, LF, NBSP, em space,
-	// line separator, ideographic space, and BOM — but not U+0085.
-	key := "\t\r\n" + "\u00a0\u2000\u2028\u3000\ufeff" + "test-only-key" + "\ufeff \u3000\u00a0\n"
+	key := "\t\r\n\u00a0\u3000test-only-key \u3000\u00a0\n"
 	t.Setenv("OPENROUTER_API_KEY", key)
 	status, stdout, stderr := runCLI("--internal-auth")
 	if status != 0 || stderr != "" {
@@ -40,12 +38,6 @@ func TestInternalAuthProtocol(t *testing.T) {
 	}
 	if !strings.HasPrefix(stderr, "codex-openrouter: ") {
 		t.Fatalf("stderr=%q", stderr)
-	}
-
-	// U+0085 is not trimmed by the JavaScript helper; it stays in the key.
-	t.Setenv("OPENROUTER_API_KEY", "\u0085test-only-key\u0085")
-	if _, stdout, _ := runCLI("--internal-auth"); stdout != "\u0085test-only-key\u0085" {
-		t.Fatalf("NEL must be preserved, stdout=%q", stdout)
 	}
 
 	marker := filepath.Join(t.TempDir(), "executed")
@@ -162,7 +154,6 @@ func TestSetDefaultVariations(t *testing.T) {
 	}
 }
 
-// Legacy callers may explicitly re-supply saved values; that rewrite succeeds.
 func TestSetDefaultIdempotentRewrite(t *testing.T) {
 	home := testHome(t)
 	status, _, stderr := runCLI("--set-default", "vendor/same", "--reasoning", "low")

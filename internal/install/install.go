@@ -207,11 +207,7 @@ func run(ctx context.Context, prefix string, identity distribution.ReleaseIdenti
 	if err != nil {
 		return result, err
 	}
-	if prior.link != "" {
-		if err := os.Symlink(prior.link, filepath.Join(stage, "prior-public")); err != nil {
-			return result, err
-		}
-	} else if prior.info != nil {
+	if prior.info != nil {
 		if err := writeSynced(filepath.Join(stage, "prior-public"), prior.data, 0o700); err != nil {
 			return result, err
 		}
@@ -224,12 +220,6 @@ func run(ctx context.Context, prefix string, identity distribution.ReleaseIdenti
 		if observedErr == nil && sum(current) == sum(helper) {
 			activated = true
 			return result, fmt.Errorf("replacement reported an error, and the public entry matches the new launcher: %w", err)
-		}
-		if prior.link != "" {
-			link, linkErr := os.Readlink(public)
-			if linkErr == nil && link == prior.link {
-				return result, fmt.Errorf("activation failed; previous public link remains: %w", err)
-			}
 		}
 		if prior.data != nil && observedErr == nil && sum(current) == sum(prior.data) {
 			return result, fmt.Errorf("activation failed; previous public executable remains: %w", err)

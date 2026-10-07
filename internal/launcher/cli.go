@@ -133,7 +133,6 @@ func fail(stderr io.Writer, message string) int {
 	return 1
 }
 
-// Explicitly re-supplying saved values remains a successful rewrite for legacy compatibility.
 func runSetDefault(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
 		fmt.Fprintln(stdout, setDefaultUsage)
@@ -235,7 +234,7 @@ func runShowConfig(stdout, stderr io.Writer) int {
 
 // runLaunch prepares and performs the direct native launch. Informational
 // --version/-V/--help/-h need no key; ordinary launches validate the key
-// before native execution. There is no PATH search, shell, proxy, or npm
+// before native execution. There is no PATH search, shell, or proxy
 // fallback: a missing or corrupt managed release fails with reinstall
 // instructions.
 func runLaunch(args []string, stdout, stderr io.Writer) int {

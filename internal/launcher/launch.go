@@ -77,10 +77,9 @@ var flags = map[string]bool{
 	"-h": true, "--help": true, "-V": true, "--version": true,
 }
 
-// IsUpdateCommand mirrors the existing wrapper's command-position recognizer.
-// It reports true only when `update` appears as the first positional command,
-// so prompt text, `exec update`, `plugin update`, and `help update` still
-// reach Codex. An unknown option makes interception conservative: the
+// IsUpdateCommand reports true only when `update` appears as the first
+// positional command, so prompt text, `exec update`, `plugin update`, and
+// `help update` still reach Codex. An unknown option makes interception conservative: the
 // arguments are forwarded and Codex decides. Review this against the Codex
 // pin; it is not a reimplementation of Codex's parser.
 func IsUpdateCommand(args []string) bool {
@@ -116,6 +115,6 @@ func IsUpdateCommand(args []string) bool {
 	return false
 }
 
-// UpdateInstructions is the interception message for command-position
-// `update`; the managed installer replaces npm-based updating.
+// UpdateInstructions replaces Codex's own updater, which cannot update the
+// managed release.
 const UpdateInstructions = "To update codex-openrouter and its pinned Codex CLI, download a new codex-openrouter release and run its --install. Saved defaults are preserved."
